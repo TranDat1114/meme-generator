@@ -157,7 +157,7 @@ export default function MemeGenerator() {
             ctx.save()
             ctx.translate(pos.x, pos.y)
             ctx.rotate((pos.rotation * Math.PI) / 180)
-            ctx.font = `${pos.size}px Impact`
+            ctx.font = `${pos.size}px 'Bangers', 'Impact', sans-serif`;
             ctx.fillStyle = "white"
             ctx.strokeStyle = "black"
             ctx.lineWidth = 2
@@ -234,13 +234,13 @@ export default function MemeGenerator() {
             </div>
           }
 
-          <div className="flex md:flex-row flex-col space-x-4">
+          <div className="flex md:flex-row flex-col md:space-x-4">
             <div className="mb-4 md:w-1/2">
               <Label htmlFor="text-size">Text Size</Label>
               <Slider
                 id="text-size"
                 min={10}
-                max={100}
+                max={500}
                 step={1}
                 value={[selectedText ? selectedText.size : 0]}
                 onValueChange={(value) => handleTextSizeChange(value[0])}
@@ -266,9 +266,9 @@ export default function MemeGenerator() {
           ref={canvasRef}
           onClick={handleCanvasClick}
           onMouseMove={handleDrag}
-          // onMouseUp={handleDragEnd}
+          onMouseUp={handleDragEnd}
           className="border-gray-300 border cursor-crosshair"
-          style={{ maxWidth: "100%", height: "auto", maxHeight: '350px' }}
+          style={{ maxWidth: "100%", height: "auto" }}
           width={canvasSize.width}
           height={canvasSize.height}
         />
@@ -315,17 +315,20 @@ export default function MemeGenerator() {
       <div className="flex flex-wrap gap-2">
         <Button onClick={() => fileInputRef.current?.click()}>Choose Image</Button>
         {
-          image && <Toggle
-            variant={"outline"}
-            pressed={previewState}
-            onPressedChange={setPreviewState}
-          >
-            <ScanEye className="w-4 h-4" />
-            Preview
-          </Toggle>
+          image &&
+          <>
+            <Toggle
+              variant={"outline"}
+              pressed={previewState}
+              onPressedChange={setPreviewState}
+            >
+              <ScanEye className="w-4 h-4" />
+              Preview
+            </Toggle>
+            <Button onClick={downloadMeme}>Download Meme</Button>
+            <Button onClick={downloadMeme}>To BlockChain</Button>
+          </>
         }
-        <Button onClick={downloadMeme}>Download Meme</Button>
-        <Button onClick={downloadMeme}>To BlockChain</Button>
       </div>
       <p className="mt-4 text-gray-600 text-sm">
         Click on the image to add text. Drag the move handle to reposition text. Click on text to edit size and
