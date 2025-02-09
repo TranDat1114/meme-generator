@@ -6,7 +6,8 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Slider } from "@/components/ui/slider"
-import { X, Move } from "lucide-react"
+import { Toggle } from "@/components/ui/toggle"
+import { X, Move, TypeOutline, ScanEye } from "lucide-react"
 
 interface TextPosition {
   id: number
@@ -48,6 +49,9 @@ export default function MemeGenerator() {
     }
   }, [])
 
+  const [addTextState, setAddTextState] = useState(true)
+  const [previewState, setPreviewState] = useState(false)
+
   const handleCanvasClick = useCallback(
     (e: React.MouseEvent<HTMLCanvasElement>) => {
       const canvas = canvasRef.current
@@ -56,23 +60,18 @@ export default function MemeGenerator() {
         const x = (e.clientX - rect.left) * (canvas.width / rect.width)
         const y = (e.clientY - rect.top) * (canvas.height / rect.height)
 
-        // Check if we clicked on an existing text
-        const clickedText = textPositions.find((pos) => Math.abs(pos.x - x) < 20 && Math.abs(pos.y - y) < 20)
-
-        if (clickedText) {
-          setSelectedTextId(clickedText.id)
-        } else if (text) {
-          const newText: TextPosition = { id: nextId, x, y, text, size: 30, rotation: 0 }
+        if (text && addTextState) {
+          const newText: TextPosition = { id: nextId, x, y, text, size: 80, rotation: 0 }
           setTextPositions((prev) => [...prev, newText])
           setSelectedTextId(nextId)
           setNextId((prevId) => prevId + 1)
-          setText("") // Clear the text input after adding
+          setText("")
         } else {
           setSelectedTextId(null)
         }
       }
     },
-    [text, nextId, textPositions],
+    [text, addTextState, nextId],
   )
 
   const removeText = useCallback((e: React.MouseEvent, id: number) => {
@@ -190,96 +189,145 @@ export default function MemeGenerator() {
   const selectedText = textPositions.find((pos) => pos.id === selectedTextId)
 
   return (
-    <div className="container mx-auto p-4">
-      <h1 className="text-2xl font-bold mb-4">Meme Generator</h1>
+    <div className="mx-auto p-4 max-w-xl container">
+      <h1 className="mb-4 font-bold text-2xl">Meme Generator</h1>
       <div className="mb-4">
         <Label htmlFor="image-upload">Upload Image</Label>
         <Input id="image-upload" type="file" accept="image/*" onChange={handleImageUpload} ref={fileInputRef} />
       </div>
-      <div className="mb-4">
-        <Label htmlFor="text-input">Meme Text</Label>
-        <Input
-          id="text-input"
-          type="text"
-          value={text}
-          onChange={(e) => setText(e.target.value)}
-          placeholder="Enter meme text"
-        />
-      </div>
-      {selectedText && (
-        <>
+
+      {
+        image && <>
           <div className="mb-4">
-            <Label htmlFor="text-size">Text Size</Label>
-            <Slider
-              id="text-size"
-              min={10}
-              max={100}
-              step={1}
-              value={[selectedText.size]}
-              onValueChange={(value) => handleTextSizeChange(value[0])}
-            />
+            <Label htmlFor="text-add">In {addTextState ? 'Add' : "Edit"} Text Mode {`(Toggle to change)`}</Label>
+            <br />
+            <Toggle
+              id="text-add"
+              variant="outline"
+              size="default"
+              pressed={addTextState}
+              onPressedChange={setAddTextState}
+            >
+              <TypeOutline className="w-4 h-4" />
+            </Toggle>
           </div>
-          <div className="mb-4">
-            <Label htmlFor="text-rotation">Text Rotation</Label>
-            <Slider
-              id="text-rotation"
-              min={-180}
-              max={180}
-              step={1}
-              value={[selectedText.rotation]}
-              onValueChange={(value) => handleTextRotationChange(value[0])}
-            />
+          {
+            <div className="mb-4">
+              <Label htmlFor="text-input">Meme Text</Label>
+              <Input
+                id="text-input"
+                type="text"
+                value={text}
+                onChange={(e) => {
+                  setText(e.target.value)
+                  // If a text is selected, update its text content
+                  if (selectedTextId !== null) {
+                    setTextPositions((prev) =>
+                      prev.map((pos) =>
+                        pos.id === selectedTextId ? { ...pos, text: e.target.value } : pos
+                      )
+                    )
+                  }
+                }}
+                placeholder="Enter meme text"
+              />
+            </div>
+          }
+
+          <div className="flex md:flex-row flex-col space-x-4">
+            <div className="mb-4 md:w-1/2">
+              <Label htmlFor="text-size">Text Size</Label>
+              <Slider
+                id="text-size"
+                min={10}
+                max={100}
+                step={1}
+                value={[selectedText ? selectedText.size : 0]}
+                onValueChange={(value) => handleTextSizeChange(value[0])}
+              />
+            </div>
+            <div className="mb-4 md:w-1/2">
+              <Label htmlFor="text-rotation">Text Rotation</Label>
+              <Slider
+                id="text-rotation"
+                min={-180}
+                max={180}
+                step={1}
+                value={[selectedText ? selectedText.rotation : -180]}
+                onValueChange={(value) => handleTextRotationChange(value[0])}
+              />
+            </div>
           </div>
         </>
-      )}
-      <div className="mb-4 relative">
+      }
+
+      <div className="relative mx-auto mb-4">
         <canvas
           ref={canvasRef}
           onClick={handleCanvasClick}
           onMouseMove={handleDrag}
-          onMouseUp={handleDragEnd}
-          onMouseLeave={handleDragEnd}
-          className="border border-gray-300 cursor-crosshair"
-          style={{ maxWidth: "100%", height: "auto" }}
+          // onMouseUp={handleDragEnd}
+          className="border-gray-300 border cursor-crosshair"
+          style={{ maxWidth: "100%", height: "auto", maxHeight: '350px' }}
           width={canvasSize.width}
           height={canvasSize.height}
         />
-        {textPositions.map((pos) => (
-          <div
-            key={pos.id}
-            style={{
-              position: "absolute",
-              left: `${(pos.x / canvasSize.width) * 100}%`,
-              top: `${(pos.y / canvasSize.height) * 100}%`,
-              transform: "translate(-50%, -50%)",
-              cursor: isDragging && selectedTextId === pos.id ? "grabbing" : "grab",
-              border: selectedTextId === pos.id ? "2px solid blue" : "none",
-              padding: "10px",
-            }}
-            onMouseDown={(e) => handleDragStart(e, pos.id)}
-          >
-            <div className="w-6 h-6 bg-white rounded-full shadow-md flex items-center justify-center">
-              <Move className="h-4 w-4 text-gray-600" />
+        {!previewState &&
+          textPositions.map((pos) => (
+            <div
+              key={pos.id}
+              style={{
+                position: "absolute",
+                left: `${(pos.x / canvasSize.width) * 100}%`,
+                top: `${(pos.y / canvasSize.height) * 100}%`,
+                transform: "translate(-50%, -50%)",
+                cursor: isDragging && selectedTextId === pos.id ? "grabbing" : "grab",
+                border: selectedTextId === pos.id ? "2px solid blue" : "none",
+                padding: "2px",
+              }}
+              onMouseDown={(e) => handleDragStart(e, pos.id)}
+              onClick={
+                () => {
+                  setSelectedTextId(pos.id)
+                  setText(pos.text)
+                }
+              }
+              onMouseUp={handleDragEnd}
+            >
+              <div className="flex justify-center items-center bg-white shadow-md rounded-full w-6 h-6">
+                <Move className="w-4 h-4 text-gray-600" />
+              </div>
+
+              {selectedTextId === pos.id && (
+                <Button
+                  variant="destructive"
+                  size="icon"
+                  className="top-0 right-0 absolute w-6 h-6 transform -translate-y-full translate-x-full"
+                  onClick={(e) => removeText(e, pos.id)}
+                >
+                  <X className="w-4 h-4" />
+                </Button>
+              )}
             </div>
-            {selectedTextId === pos.id && (
-              <Button
-                variant="destructive"
-                size="icon"
-                className="w-6 h-6 absolute top-0 right-0 transform translate-x-full -translate-y-full"
-                onClick={(e) => removeText(e, pos.id)}
-              >
-                <X className="h-4 w-4" />
-              </Button>
-            )}
-          </div>
-        ))}
+          ))
+        }
       </div>
-      <div className="flex gap-2">
+      <div className="flex flex-wrap gap-2">
         <Button onClick={() => fileInputRef.current?.click()}>Choose Image</Button>
+        {
+          image && <Toggle
+            variant={"outline"}
+            pressed={previewState}
+            onPressedChange={setPreviewState}
+          >
+            <ScanEye className="w-4 h-4" />
+            Preview
+          </Toggle>
+        }
         <Button onClick={downloadMeme}>Download Meme</Button>
         <Button onClick={downloadMeme}>To BlockChain</Button>
       </div>
-      <p className="mt-4 text-sm text-gray-600">
+      <p className="mt-4 text-gray-600 text-sm">
         Click on the image to add text. Drag the move handle to reposition text. Click on text to edit size and
         rotation.
       </p>
