@@ -5,8 +5,9 @@ import type React from "react" // Import React
 const inter = Inter({ subsets: ["latin"] })
 
 export const metadata = {
-  title: "Meme Generator",
-  description: "Create custom memes by clicking on images",
+  title: "jMeme Generator",
+  description: "jMeme Generator is a simple meme generator that allows you to create memes with ease.",
+
 }
 
 export default function RootLayout({
@@ -16,6 +17,9 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en" className="dark">
+      <head>
+        <meta name="apple-mobile-web-app-title" content="jMeme" />
+      </head>
       <body className={inter.className}>
         {children}
       </body>
