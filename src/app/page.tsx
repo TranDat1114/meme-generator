@@ -8,6 +8,7 @@ import { Label } from "@/components/ui/label"
 import { Slider } from "@/components/ui/slider"
 import { Toggle } from "@/components/ui/toggle"
 import { X, Move, TypeOutline, ScanEye } from "lucide-react"
+import { Textarea } from "@/components/ui/textarea"
 
 interface TextPosition {
   id: number
@@ -157,13 +158,23 @@ export default function MemeGenerator() {
             ctx.save()
             ctx.translate(pos.x, pos.y)
             ctx.rotate((pos.rotation * Math.PI) / 180)
-            ctx.font = `${pos.size}px 'Bangers', 'Impact', sans-serif`;
-            ctx.fillStyle = "white"
-            ctx.strokeStyle = "black"
-            ctx.lineWidth = 2
-            ctx.textAlign = "center"
-            ctx.fillText(pos.text, 0, 0)
-            ctx.strokeText(pos.text, 0, 0)
+
+            const lines = pos.text.split("\n")
+            lines.forEach((line, idx) => {
+              const lineHeight = pos.size * 1.2
+              const yOffset = idx * lineHeight
+              ctx.font = `${pos.size}px 'Bangers', 'Impact', sans-serif`;
+              ctx.fillStyle = "white"
+              ctx.strokeStyle = "black"
+              ctx.lineWidth = 2
+              ctx.textAlign = "center"
+              ctx.fillText(line, 0, yOffset)
+              ctx.strokeText(line, 0, yOffset)
+              // ctx.fillText(pos.text, 0, 0)
+              // ctx.strokeText(pos.text, 0, 0)
+
+            })
+
             ctx.restore()
           })
         }
@@ -189,12 +200,13 @@ export default function MemeGenerator() {
   const selectedText = textPositions.find((pos) => pos.id === selectedTextId)
 
   return (
-    <div className="mx-auto p-4 max-w-xl container">
+    <div className="mx-auto p-4 max-w-lg container">
       <h1 className="mb-4 font-bold text-2xl">Meme Generator</h1>
-      <div className="mb-4">
+      <div className="hidden mb-4">
         <Label htmlFor="image-upload">Upload Image</Label>
         <Input id="image-upload" type="file" accept="image/*" onChange={handleImageUpload} ref={fileInputRef} />
       </div>
+      <Button className="mb-4" onClick={() => fileInputRef.current?.click()}>Choose Image</Button>
 
       {
         image && <>
@@ -214,9 +226,10 @@ export default function MemeGenerator() {
           {
             <div className="mb-4">
               <Label htmlFor="text-input">Meme Text</Label>
-              <Input
+              <Textarea
+                rows={2}
+                className="textarea-no-scrollbar"
                 id="text-input"
-                type="text"
                 value={text}
                 onChange={(e) => {
                   setText(e.target.value)
@@ -262,16 +275,19 @@ export default function MemeGenerator() {
       }
 
       <div className="relative mx-auto mb-4">
-        <canvas
-          ref={canvasRef}
-          onClick={handleCanvasClick}
-          onMouseMove={handleDrag}
-          onMouseUp={handleDragEnd}
-          className="border-gray-300 border cursor-crosshair"
-          style={{ maxWidth: "100%", height: "auto" }}
-          width={canvasSize.width}
-          height={canvasSize.height}
-        />
+        {image &&
+          <canvas
+            ref={canvasRef}
+            onClick={handleCanvasClick}
+            onMouseMove={handleDrag}
+            onMouseUp={handleDragEnd}
+            className="border-gray-300 border cursor-crosshair"
+            style={{ maxWidth: "100%", height: "auto" }}
+            width={canvasSize.width}
+            height={canvasSize.height}
+          />
+        }
+
         {!previewState &&
           textPositions.map((pos) => (
             <div
@@ -313,7 +329,19 @@ export default function MemeGenerator() {
         }
       </div>
       <div className="flex flex-wrap gap-2">
-        <Button onClick={() => fileInputRef.current?.click()}>Choose Image</Button>
+        <p className="mt-4 text-gray-600 text-sm">
+          {
+            image ?
+              <>
+                Click on the image to add text. Drag the move handle to reposition text. <br /> Click on text to edit size
+                and rotation.
+              </>
+              :
+              <>
+                Choose an image to get started.
+              </>
+          }
+        </p>
         {
           image &&
           <>
@@ -330,10 +358,7 @@ export default function MemeGenerator() {
           </>
         }
       </div>
-      <p className="mt-4 text-gray-600 text-sm">
-        Click on the image to add text. Drag the move handle to reposition text. Click on text to edit size and
-        rotation.
-      </p>
+
     </div>
   )
 }
