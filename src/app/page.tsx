@@ -126,6 +126,48 @@ export default function MemeGenerator() {
     setIsDragging(false)
   }, [])
 
+  const handleTouchStart = useCallback(
+    (e: React.TouchEvent, id: number) => {
+      const touch = e.touches[0]
+      const canvas = canvasRef.current
+      if (canvas) {
+        const rect = canvas.getBoundingClientRect()
+        const x = (touch.clientX - rect.left) * (canvas.width / rect.width)
+        const y = (touch.clientY - rect.top) * (canvas.height / rect.height)
+        const textPos = textPositions.find((pos) => pos.id === id)
+        if (textPos) {
+          setDragOffset({
+            x: textPos.x - x,
+            y: textPos.y - y,
+          })
+        }
+      }
+      setIsDragging(true)
+      setSelectedTextId(id)
+    },
+    [textPositions],
+  )
+
+  const handleTouchMove = useCallback(
+    (e: React.TouchEvent) => {
+      if (isDragging && selectedTextId !== null) {
+        const touch = e.touches[0]
+        const canvas = canvasRef.current
+        if (canvas) {
+          const rect = canvas.getBoundingClientRect()
+          const x = (touch.clientX - rect.left) * (canvas.width / rect.width) + dragOffset.x
+          const y = (touch.clientY - rect.top) * (canvas.height / rect.height) + dragOffset.y
+          updateTextPosition(selectedTextId, x, y)
+        }
+      }
+    },
+    [isDragging, selectedTextId, updateTextPosition, dragOffset],
+  )
+
+  const handleTouchEnd = useCallback(() => {
+    setIsDragging(false)
+  }, [])
+
   const handleTextSizeChange = useCallback(
     (value: number) => {
       if (selectedTextId !== null) {
@@ -233,7 +275,6 @@ export default function MemeGenerator() {
                 value={text}
                 onChange={(e) => {
                   setText(e.target.value)
-                  // If a text is selected, update its text content
                   if (selectedTextId !== null) {
                     setTextPositions((prev) =>
                       prev.map((pos) =>
@@ -281,6 +322,8 @@ export default function MemeGenerator() {
             onClick={handleCanvasClick}
             onMouseMove={handleDrag}
             onMouseUp={handleDragEnd}
+            onTouchMove={handleTouchMove}
+            onTouchEnd={handleTouchEnd}
             className="border-gray-300 border cursor-crosshair"
             style={{ maxWidth: "100%", height: "auto" }}
             width={canvasSize.width}
@@ -302,6 +345,7 @@ export default function MemeGenerator() {
                 padding: "2px",
               }}
               onMouseDown={(e) => handleDragStart(e, pos.id)}
+              onTouchStart={(e) => handleTouchStart(e, pos.id)}
               onClick={
                 () => {
                   setSelectedTextId(pos.id)
@@ -309,6 +353,8 @@ export default function MemeGenerator() {
                 }
               }
               onMouseUp={handleDragEnd}
+              onTouchEnd={handleTouchEnd}
+              onTouchMove={handleTouchMove}
             >
               <div className="flex justify-center items-center bg-white shadow-md rounded-full w-6 h-6">
                 <Move className="w-4 h-4 text-gray-600" />
